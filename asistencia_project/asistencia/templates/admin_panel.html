@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Panel de Administración</h1>
+    <h2>Crear Nuevo Usuario</h2>
+    <form method="post" id="userForm">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Crear Usuario</button>
+    </form>
+
+    <h2>Lista de Usuarios</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Rol</th>
+                <th>Curso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.nombre }}</td>
+                    <td>{{ usuario.apellido }}</td>
+                    <td>{{ usuario.get_tipo_usuario_display }}</td>
+                    <td>
+                        {% if usuario.curso %}
+                            {{ usuario.curso.nombre }}
+                        {% else %}
+                            Sin asignar
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // Ocultar/mostrar campos de contraseña según el tipo de usuario seleccionado
+        document.addEventListener('DOMContentLoaded', function() {
+            const tipoUsuarioField = document.querySelector('#id_tipo_usuario');
+            const password1Field = document.querySelector('#id_password1');
+            const password2Field = document.querySelector('#id_password2');
+
+            function togglePasswordFields() {
+                if (tipoUsuarioField.value !== 'profesor') {
+                    password1Field.parentElement.classList.add('hidden');
+                    password2Field.parentElement.classList.add('hidden');
+                    password1Field.required = false;
+                    password2Field.required = false;
+                } else {
+                    password1Field.parentElement.classList.remove('hidden');
+                    password2Field.parentElement.classList.remove('hidden');
+                    password1Field.required = true;
+                    password2Field.required = true;
+                }
+            }
+
+            // Ejecutar al cargar la página
+            togglePasswordFields();
+
+            // Ejecutar cuando cambie el tipo de usuario
+            tipoUsuarioField.addEventListener('change', togglePasswordFields);
+        });
+    </script>
+</body>
+</html>

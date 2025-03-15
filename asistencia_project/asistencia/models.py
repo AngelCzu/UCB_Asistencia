@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.timezone import now
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+from django.utils import timezone
 
 # Modelo de Curso
 class Curso(models.Model):
@@ -8,12 +11,18 @@ class Curso(models.Model):
     
     def __str__(self):
         return self.nombre
+    
+
+
+
 
 # Modelo de Usuario Personalizado
 class CustomUser(AbstractUser):
     TIPO_USUARIO_CHOICES = [
         ('profesor', 'Profesor'),
         ('estudiante', 'Estudiante'),
+        ('admin', 'Admin'),
+        ('oyente', 'Oyente'),
     ]
     
     nombre = models.CharField(max_length=100)
@@ -36,10 +45,6 @@ class Asistencia(models.Model):
     fecha = models.DateField(auto_now_add=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES)
     
-    def save(self, *args, **kwargs):
-        if now().weekday() != 6:  # Domingo es 6 en Python (lunes=0, domingo=6)
-            raise ValueError("Las asistencias solo pueden registrarse los días domingo.")
-        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.estudiante.nombre} {self.estudiante.apellido} - {self.fecha} - {self.get_estado_display()}"
