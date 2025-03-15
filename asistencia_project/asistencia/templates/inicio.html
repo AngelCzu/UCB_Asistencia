@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .usuario-info {
+            margin-bottom: 20px;
+        }
+        .cursos, .asistencias {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="usuario-info">
+        <h1>Bienvenido, {{ usuario.nombre }} {{ usuario.apellido }}</h1>
+        <p>Rol: {{ usuario.get_tipo_usuario_display }}</p>
+    </div>
+
+    <div class="cursos">
+        <h2>Cursos ({{ fecha_inicio|date:"F Y" }} - {{ fecha_fin|date:"F Y" }})</h2>
+        <ul>
+            {% for curso in cursos %}
+                <li>{{ curso.nombre }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="asistencias">
+        <h2>Asistencias Pasadas</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Estudiante</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asistencia in asistencias_pasadas %}
+                    <tr>
+                        <td>{{ asistencia.estudiante.nombre }} {{ asistencia.estudiante.apellido }}</td>
+                        <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ asistencia.get_estado_display }}</td>
+                        <td>
+                            <a href="{% url 'modificar_asistencia' asistencia.id %}">Modificar</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">No hay asistencias registradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
