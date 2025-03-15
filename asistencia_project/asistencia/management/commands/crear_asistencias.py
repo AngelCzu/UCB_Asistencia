@@ -1,18 +1,30 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from asistencia.models import Asistencia, CustomUser, Curso
 import datetime
+from asistencia.models import CustomUser, Asistencia, Curso
 
 class Command(BaseCommand):
-    help = 'Crea asistencias automáticamente desde marzo hasta diciembre, solo los domingos.'
+    help = 'Crea asistencias automáticamente desde marzo hasta diciembre, solo los domingos, para el curso "Corderitos de Jesús 2025".'
 
     def handle(self, *args, **kwargs):
         año_actual = timezone.now().year
         fecha_inicio = datetime.date(año_actual, 3, 1)  # 1 de marzo
         fecha_fin = datetime.date(año_actual, 12, 31)  # 31 de diciembre
 
-        # Obtener todos los estudiantes
-        estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante')
+        # Obtener el curso "Corderitos de Jesús 2025"
+        curso_nombre = "Curso Corderitos de Jesús 2025"
+        curso = Curso.objects.filter(nombre=curso_nombre).first()
+
+        if not curso:
+            self.stdout.write(self.style.ERROR(f'El curso "{curso_nombre}" no existe.'))
+            return
+
+        # Obtener todos los estudiantes del curso
+        estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', curso=curso)
+
+        if not estudiantes:
+            self.stdout.write(self.style.WARNING(f'No hay estudiantes en el curso "{curso_nombre}".'))
+            return
 
         # Recorrer cada día desde marzo hasta diciembre
         current_date = fecha_inicio
@@ -33,3 +45,5 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING(f'Asistencia ya existe para {estudiante.nombre} el {current_date}'))
             # Avanzar al siguiente día
             current_date += datetime.timedelta(days=1)
+
+        self.stdout.write(self.style.SUCCESS('Proceso de creación de asistencias finalizado.'))

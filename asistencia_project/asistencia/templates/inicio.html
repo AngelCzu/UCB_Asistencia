@@ -12,7 +12,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 20px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -22,58 +22,39 @@
         th {
             background-color: #f2f2f2;
         }
-        .admin-options {
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
     <h1>Bienvenido, {{ usuario.nombre }} {{ usuario.apellido }}</h1>
     <p>Rol: {{ usuario.get_tipo_usuario_display }}</p>
 
-    <!-- Mostrar opciones de admin si el usuario es admin -->
-    {% if es_admin %}
-        <div class="admin-options">
-            <h2>Opciones de Administración</h2>
-            <a href="{% url 'admin_panel' %}">
-                <button>Generar Nuevo Usuario</button>
-            </a>
-        </div>
+    <h2>Asistencias por Fecha</h2>
+    {% if asistencias_por_fecha %}
+        {% for fecha, asistencias in asistencias_por_fecha.items %}
+            <h3>Fecha: {{ fecha }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estudiante</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asistencia in asistencias %}
+                        <tr>
+                            <td>{{ asistencia.estudiante.nombre }} {{ asistencia.estudiante.apellido }}</td>
+                            <td>{{ asistencia.get_estado_display }}</td>
+                            <td>
+                                <a href="{% url 'modificar_asistencia' asistencia.id %}">Modificar</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% else %}
+        <p>No hay asistencias registradas.</p>
     {% endif %}
-
-    <h2>Cursos ({{ fecha_inicio|date:"F Y" }} - {{ fecha_fin|date:"F Y" }})</h2>
-    <ul>
-        
-            <li>{{ usuario.curso.nombre }}</li>
-        
-    </ul>
-
-    <h2>Asistencia</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Estudiante</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for asistencia in asistencias_pasadas %}
-                <tr>
-                    <td>{{ asistencia.estudiante.nombre }} {{ asistencia.estudiante.apellido }}</td>
-                    <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
-                    <td>{{ asistencia.get_estado_display }}</td>
-                    <td>
-                        <a href="{% url 'modificar_asistencia' asistencia.id %}">Modificar</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4">No hay asistencias registradas.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </body>
 </html>

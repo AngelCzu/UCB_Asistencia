@@ -42,7 +42,7 @@ class Asistencia(models.Model):
     ]
     
     estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'estudiante'})
-    fecha = models.DateField(auto_now_add=True)
+    fecha = models.DateField()
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES)
     
     
