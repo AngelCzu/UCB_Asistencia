@@ -44,6 +44,7 @@
                 <th>Apellido</th>
                 <th>Rol</th>
                 <th>Curso</th>
+                <th>Sexo</th>
             </tr>
         </thead>
         <tbody>
@@ -59,6 +60,7 @@
                             Sin asignar
                         {% endif %}
                     </td>
+                    <td>{{ usuario.sexo }}</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -67,30 +69,35 @@
     <script>
         // Ocultar/mostrar campos de contraseña según el tipo de usuario seleccionado
         document.addEventListener('DOMContentLoaded', function() {
-            const tipoUsuarioField = document.querySelector('#id_tipo_usuario');
-            const password1Field = document.querySelector('#id_password1');
-            const password2Field = document.querySelector('#id_password2');
-
+            const tipoUsuarioRadios = document.querySelectorAll('input[name="tipo_usuario"]');
+            const password1Field = document.querySelector('#id_password1').parentElement;
+            const password2Field = document.querySelector('#id_password2').parentElement;
+    
             function togglePasswordFields() {
-                if (tipoUsuarioField.value !== 'profesor') {
-                    password1Field.parentElement.classList.add('hidden');
-                    password2Field.parentElement.classList.add('hidden');
-                    password1Field.required = false;
-                    password2Field.required = false;
+                const selectedTipoUsuario = document.querySelector('input[name="tipo_usuario"]:checked')?.value;
+                
+                if (selectedTipoUsuario !== 'profesor') {
+                    password1Field.classList.add('hidden');
+                    password2Field.classList.add('hidden');
+                    document.querySelector('#id_password1').required = false;
+                    document.querySelector('#id_password2').required = false;
                 } else {
-                    password1Field.parentElement.classList.remove('hidden');
-                    password2Field.parentElement.classList.remove('hidden');
-                    password1Field.required = true;
-                    password2Field.required = true;
+                    password1Field.classList.remove('hidden');
+                    password2Field.classList.remove('hidden');
+                    document.querySelector('#id_password1').required = true;
+                    document.querySelector('#id_password2').required = true;
                 }
             }
-
+    
             // Ejecutar al cargar la página
             togglePasswordFields();
-
+    
             // Ejecutar cuando cambie el tipo de usuario
-            tipoUsuarioField.addEventListener('change', togglePasswordFields);
+            tipoUsuarioRadios.forEach(radio => {
+                radio.addEventListener('change', togglePasswordFields);
+            });
         });
     </script>
+    
 </body>
 </html>

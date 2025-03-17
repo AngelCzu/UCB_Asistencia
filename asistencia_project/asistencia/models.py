@@ -1,9 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils.timezone import now
-from django.db.models.signals import post_migrate
-from django.dispatch import receiver
-from django.utils import timezone
 
 # Modelo de Curso
 class Curso(models.Model):
@@ -11,10 +7,6 @@ class Curso(models.Model):
     
     def __str__(self):
         return self.nombre
-    
-
-
-
 
 # Modelo de Usuario Personalizado
 class CustomUser(AbstractUser):
@@ -27,6 +19,7 @@ class CustomUser(AbstractUser):
     
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
+    sexo = models.CharField(max_length=100)
     tipo_usuario = models.CharField(max_length=10, choices=TIPO_USUARIO_CHOICES, default='estudiante')
     curso = models.ForeignKey(Curso, on_delete=models.SET_NULL, null=True, blank=True, related_name='usuarios')
     
@@ -44,7 +37,7 @@ class Asistencia(models.Model):
     estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'estudiante'})
     fecha = models.DateField()
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES)
-    
+    cantidad_biblias = models.PositiveIntegerField(null=True, blank=True)
     
     def __str__(self):
-        return f"{self.estudiante.nombre} {self.estudiante.apellido} - {self.fecha} - {self.get_estado_display()}"
+        return f"{self.estudiante.nombre} {self.estudiante.apellido} - {self.fecha} - {self.get_estado_display()} - Biblias: {self.cantidad_biblias if self.cantidad_biblias is not None else 'Sin asignar'}"

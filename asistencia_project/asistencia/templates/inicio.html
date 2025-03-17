@@ -24,10 +24,9 @@
 <body>
     <h1>Bienvenido, {{ usuario.nombre }} {{ usuario.apellido }}</h1>
     <p>Rol: {{ usuario.get_tipo_usuario_display }}</p>
-
-    <div class="export-button">
-        <a href="{% url 'exportar_excel' %}" class="btn btn-primary">Exportar a Excel</a>
-    </div>
+    
+    <a href="admin_panel"> Generar Usuarios </a>
+    
 
     <h2>Calendario de Asistencias</h2>
     <div id="calendar"></div>

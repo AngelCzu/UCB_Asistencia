@@ -1,23 +1,42 @@
 from django import forms
-from .models import Asistencia
+from .models import Asistencia, CustomUser, Curso
 from django.contrib.auth.forms import UserCreationForm
-from .models import *
 
 class AsistenciaForm(forms.ModelForm):
     class Meta:
         model = Asistencia
         fields = ['estado']
 
-
 class CustomUserCreationForm(UserCreationForm):
+    SEXO_CHOICES = [
+        ('Hombre', 'Hombre'),
+        ('Mujer', 'Mujer'),
+    ]
+    
+    TIPO_USUARIO_CHOICES = [
+        ('profesor', 'Profesor'),
+        ('estudiante', 'Estudiante'),
+        ('admin', 'Admin'),
+        ('oyente', 'Oyente'),
+    ]
+    
     nombre = forms.CharField(max_length=100, required=True)
     apellido = forms.CharField(max_length=100, required=True)
-    tipo_usuario = forms.ChoiceField(choices=CustomUser.TIPO_USUARIO_CHOICES, required=True)
+    sexo = forms.ChoiceField(
+        choices=SEXO_CHOICES, 
+        widget=forms.RadioSelect(),  # Usa botones de opción
+        required=True
+    )
+    tipo_usuario = forms.ChoiceField(
+        choices=TIPO_USUARIO_CHOICES, 
+        widget=forms.RadioSelect(),  # Usa botones de opción
+        required=True
+    )
     curso = forms.ModelChoiceField(queryset=Curso.objects.all(), required=False)
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'nombre', 'apellido', 'tipo_usuario', 'curso', 'password1', 'password2']
+        fields = ['username', 'nombre', 'apellido', 'sexo', 'tipo_usuario', 'curso', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
