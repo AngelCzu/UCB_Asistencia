@@ -35,9 +35,10 @@ class Asistencia(models.Model):
     ]
     
     estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'estudiante'})
+    profesor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="asistencias_creadas", limit_choices_to={'tipo_usuario': 'profesor'})
     fecha = models.DateField()
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES)
     cantidad_biblias = models.PositiveIntegerField(null=True, blank=True)
-    
+
     def __str__(self):
         return f"{self.estudiante.nombre} {self.estudiante.apellido} - {self.fecha} - {self.get_estado_display()} - Biblias: {self.cantidad_biblias if self.cantidad_biblias is not None else 'Sin asignar'}"
