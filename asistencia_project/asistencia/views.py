@@ -51,12 +51,14 @@ def get_color_porcentaje(porcentaje):
     else:
         return 'green'
 
+
 @login_required
 def inicio(request):
     usuario = request.user
     fecha_actual = now().date()
 
     if usuario.tipo_usuario == 'profesor' and usuario.curso:
+<<<<<<< HEAD
         # Obtener todas las fechas únicas de las asistencias, excluyendo la fecha actual
         fechas_unicas = Asistencia.objects.filter(
             estudiante__curso=usuario.curso,
@@ -96,11 +98,21 @@ def inicio(request):
         'clase_actual': clase_actual,
         'fecha_actual': fecha_actual,
         'datos_grafico': datos_grafico
+=======
+        clases = Asistencia.objects.filter(estudiante__curso=usuario.curso).order_by('-fecha')
+    else:
+        clases = []
+
+    context = {
+        'usuario': usuario,
+        'clases': clases,
+>>>>>>> 40daceeff9fe3604f8ac9ae225f941e1a3d7b8a6
     }
 
     return render(request, 'inicio.html', context)
 
 
+<<<<<<< HEAD
 @login_required
 def modificar_asistencia_fecha(request, fecha):
     if fecha == "hoy":
@@ -116,14 +128,61 @@ def modificar_asistencia_fecha(request, fecha):
     profesores = CustomUser.objects.filter(tipo_usuario='profesor', curso=profesor.curso).exclude(id=profesor.id)
 
     # Crear registros de asistencia para estudiantes si no existen
+=======
+
+
+
+@login_required
+def modificar_asistencia(request, asistencia_id):
+    asistencia = get_object_or_404(Asistencia, id=asistencia_id)
+
+    if request.method == 'POST':
+        form = AsistenciaForm(request.POST, instance=asistencia)
+        if form.is_valid():
+            form.save()
+            return redirect('inicio')
+    else:
+        form = AsistenciaForm(instance=asistencia)
+
+    context = {
+        'form': form,
+        'asistencia': asistencia,
+    }
+
+    return render(request, 'modificar_asistencia.html', context)
+
+
+@login_required
+def modificar_asistencia_fecha(request, fecha):
+    if fecha == "hoy":
+        fecha_obj = timezone.now().date()
+    else:
+        fecha_obj = datetime.datetime.strptime(fecha, '%Y-%m-%d').date()
+
+    profesor = request.user
+
+    if profesor.tipo_usuario != 'profesor' or not profesor.curso:
+        return redirect('inicio')
+
+    estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', curso=profesor.curso)
+
+    asistencias = []
+>>>>>>> 40daceeff9fe3604f8ac9ae225f941e1a3d7b8a6
     for estudiante in estudiantes:
         Asistencia.objects.get_or_create(
             estudiante=estudiante,
+<<<<<<< HEAD
             profesor=profesor,
             fecha=fecha,
             defaults={"estado": "ausente", "cantidad_biblias": 0}
+=======
+            fecha=fecha_obj,
+            profesor=profesor,  # Se asigna el profesor que genera la asistencia
+            defaults={'estado': 'ausente', 'cantidad_biblias': 0}
+>>>>>>> 40daceeff9fe3604f8ac9ae225f941e1a3d7b8a6
         )
 
+<<<<<<< HEAD
     # Crear registros de asistencia para profesores si no existen (estado predeterminado: presente)
     for prof in profesores:
         Asistencia.objects.get_or_create(
@@ -144,8 +203,31 @@ def modificar_asistencia_fecha(request, fecha):
             asistencia.cantidad_biblias = 1 if biblia else 0
             asistencia.save()
         return redirect("inicio")
+=======
+    if request.method == 'POST':
+        for asistencia in asistencias:
+            estado = request.POST.get(f"estado_{asistencia.id}")
+            biblia = request.POST.get(f"biblia_{asistencia.id}", "off") == "on"
+            asistencia.estado = estado
+            asistencia.cantidad_biblias = 1 if biblia else 0
+            asistencia.save()
+    
+   
+
+        return redirect('inicio')
+
+     # Crear un formulario para cada asistencia
+    forms = [AsistenciaForm(prefix=str(asistencia.id), instance=asistencia) for asistencia in asistencias]
+
+    context = {
+        'fecha': fecha_obj,
+        'asistencias': asistencias,
+        'forms': forms,
+    }
+>>>>>>> 40daceeff9fe3604f8ac9ae225f941e1a3d7b8a6
 
     return render(request, "modificar_asistencia_fecha.html", {"asistencia_list": asistencia_list, "fecha": fecha})
+
 
 
 # Función para verificar si el usuario es admin
