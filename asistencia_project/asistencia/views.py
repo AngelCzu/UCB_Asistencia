@@ -8,7 +8,7 @@ from .forms import AsistenciaForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import *
 import datetime
-import json
+from django.utils.timezone import now
 from django.http import HttpResponse
 
 
@@ -54,116 +54,98 @@ def get_color_porcentaje(porcentaje):
 @login_required
 def inicio(request):
     usuario = request.user
+    fecha_actual = now().date()
 
-    # Obtener el rango de tiempo (marzo a diciembre del año actual)
-    año_actual = timezone.now().year
-    fecha_inicio = timezone.datetime(año_actual, 3, 1).date()  # 1 de marzo
-    fecha_fin = timezone.datetime(año_actual, 12, 31).date()  # 31 de diciembre
-
-    # Obtener todos los estudiantes del curso del profesor (si es profesor)
     if usuario.tipo_usuario == 'profesor' and usuario.curso:
-        estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', curso=usuario.curso)
-    elif usuario.tipo_usuario == 'estudiante':
-        estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', id=usuario.id)
+        # Obtener todas las fechas únicas de las asistencias, excluyendo la fecha actual
+        fechas_unicas = Asistencia.objects.filter(
+            estudiante__curso=usuario.curso,
+            fecha__lt=fecha_actual  # Excluir la fecha actual
+        ).values_list('fecha', flat=True).distinct().order_by('-fecha')
+
+        # Clase actual
+        clase_actual = Asistencia.objects.filter(
+            estudiante__curso=usuario.curso,
+            fecha=fecha_actual
+        ).first()
+
+        # Calcular el total de asistencias, atrasos y ausencias para todas las clases
+        asistencias_totales = Asistencia.objects.filter(estudiante__curso=usuario.curso)
+        total = asistencias_totales.count()
+        presentes = asistencias_totales.filter(estado='presente').count()
+        atrasados = asistencias_totales.filter(estado='atrasado').count()
+        ausentes = asistencias_totales.filter(estado='ausente').count()
+
+        porcentaje_presentes = (presentes / total) * 100 if total > 0 else 0
+        porcentaje_atrasados = (atrasados / total) * 100 if total > 0 else 0
+        porcentaje_ausentes = (ausentes / total) * 100 if total > 0 else 0
+
+        datos_grafico = {
+            'presentes': round(porcentaje_presentes, 2),
+            'atrasados': round(porcentaje_atrasados, 2),
+            'ausentes': round(porcentaje_ausentes, 2),
+        }
     else:
-        estudiantes = CustomUser.objects.none()
-
-    # Obtener todos los domingos en el rango de fechas
-    domingos = []
-    current_date = fecha_inicio
-    while current_date <= fecha_fin:
-        if current_date.weekday() == 6:  # Domingo es 6 en Python
-            domingos.append(current_date)
-        current_date += datetime.timedelta(days=1)
-
-    # Calcular el porcentaje de asistencia para cada domingo
-    eventos = []
-    for domingo in domingos:
-        asistencias = Asistencia.objects.filter(fecha=domingo, estudiante__in=estudiantes)
-        total_estudiantes = estudiantes.count()
-        total_presentes = asistencias.filter(estado='presente').count()
-        porcentaje = (total_presentes / total_estudiantes) * 100 if total_estudiantes > 0 else 0
-
-        eventos.append({
-            'title': f"{porcentaje:.2f}%",  # Mostrar el porcentaje
-            'start': domingo.isoformat(),  # Fecha del domingo
-            'color': get_color_porcentaje(porcentaje),  # Color según el porcentaje
-        })
-
-    # Convertir la lista de eventos a JSON
-    eventos_json = json.dumps(eventos)
+        fechas_unicas = []
+        clase_actual = None
+        datos_grafico = None
 
     context = {
         'usuario': usuario,
-        'eventos': eventos_json,  # Pasar los eventos como JSON
-        'fecha_inicio': fecha_inicio,
-        'fecha_fin': fecha_fin,
+        'fechas_unicas': fechas_unicas,
+        'clase_actual': clase_actual,
+        'fecha_actual': fecha_actual,
+        'datos_grafico': datos_grafico
     }
 
     return render(request, 'inicio.html', context)
 
 
-
-
-@login_required
-def modificar_asistencia(request, asistencia_id):
-    asistencia = get_object_or_404(Asistencia, id=asistencia_id)
-
-    if request.method == 'POST':
-        form = AsistenciaForm(request.POST, instance=asistencia)
-        if form.is_valid():
-            form.save()
-            return redirect('inicio')
-    else:
-        form = AsistenciaForm(instance=asistencia)
-
-    context = {
-        'form': form,
-        'asistencia': asistencia,
-    }
-
-    return render(request, 'modificar_asistencia.html', context)
-
-
-@login_required
 @login_required
 def modificar_asistencia_fecha(request, fecha):
-    # Convertir la fecha de string a objeto date
-    fecha_obj = datetime.datetime.strptime(fecha, '%Y-%m-%d').date()
+    if fecha == "hoy":
+        fecha = now().date()  # Convertir "hoy" en la fecha actual
 
-    # Obtener todos los estudiantes del curso del profesor (si es profesor)
-    if request.user.tipo_usuario == 'profesor' and request.user.curso:
-        estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', curso=request.user.curso)
-    else:
-        estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', id=request.user.id)
+    profesor = request.user  # Se asume que el usuario autenticado es un profesor
+    
+    if profesor.tipo_usuario != 'profesor' or not profesor.curso:
+        return redirect('inicio')  # Redirigir si el usuario no es profesor
 
-    # Obtener o crear asistencias para la fecha seleccionada
-    asistencias = []
+    # Obtener estudiantes y profesores del curso del profesor (excepto el profesor que generó la clase)
+    estudiantes = CustomUser.objects.filter(tipo_usuario='estudiante', curso=profesor.curso)
+    profesores = CustomUser.objects.filter(tipo_usuario='profesor', curso=profesor.curso).exclude(id=profesor.id)
+
+    # Crear registros de asistencia para estudiantes si no existen
     for estudiante in estudiantes:
-        asistencia, created = Asistencia.objects.get_or_create(
+        Asistencia.objects.get_or_create(
             estudiante=estudiante,
-            fecha=fecha_obj,
-            defaults={'estado': 'presente'}  # Estado predeterminado
+            profesor=profesor,
+            fecha=fecha,
+            defaults={"estado": "ausente", "cantidad_biblias": 0}
         )
-        asistencias.append(asistencia)
 
-    if request.method == 'POST':
-        # Procesar el formulario para cada asistencia
-        for asistencia in asistencias:
-            form = AsistenciaForm(request.POST, prefix=str(asistencia.id), instance=asistencia)
-            if form.is_valid():
-                form.save()
-        return redirect('inicio')
+    # Crear registros de asistencia para profesores si no existen (estado predeterminado: presente)
+    for prof in profesores:
+        Asistencia.objects.get_or_create(
+            estudiante=prof,
+            profesor=profesor,
+            fecha=fecha,
+            defaults={"estado": "presente", "cantidad_biblias": 0}
+        )
 
-    # Crear un formulario para cada asistencia
-    forms = [AsistenciaForm(prefix=str(asistencia.id), instance=asistencia) for asistencia in asistencias]
+    # Obtener lista actualizada de asistencias (estudiantes y profesores)
+    asistencia_list = Asistencia.objects.filter(fecha=fecha, estudiante__curso=profesor.curso)
 
-    context = {
-        'fecha': fecha_obj,
-        'forms': forms,
-    }
+    if request.method == "POST":
+        for asistencia in asistencia_list:
+            estado = request.POST.get(f"estado_{asistencia.id}", "ausente")
+            biblia = request.POST.get(f"biblia_{asistencia.id}", "off") == "on"
+            asistencia.estado = estado
+            asistencia.cantidad_biblias = 1 if biblia else 0
+            asistencia.save()
+        return redirect("inicio")
 
-    return render(request, 'modificar_asistencia_fecha.html', context)
+    return render(request, "modificar_asistencia_fecha.html", {"asistencia_list": asistencia_list, "fecha": fecha})
 
 
 # Función para verificar si el usuario es admin

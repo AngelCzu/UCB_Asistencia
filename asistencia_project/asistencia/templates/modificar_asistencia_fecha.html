@@ -22,6 +22,14 @@
         th {
             background-color: #f2f2f2;
         }
+        .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+        .profesor-title {
+            font-weight: bold;
+            color: blue; /* Puedes cambiar el color si lo deseas */
+        }
     </style>
 </head>
 <body>
@@ -31,20 +39,41 @@
         <table>
             <thead>
                 <tr>
-                    <th>Estudiante</th>
+                    <th>Nombre</th>
                     <th>Estado</th>
+                    <th>¿Trajo Biblia?</th>
                 </tr>
             </thead>
             <tbody>
-                {% for form in forms %}
-                    <tr>
-                        <td>{{ form.instance.estudiante.nombre }} {{ form.instance.estudiante.apellido }}</td>
-                        <td>{{ form.estado }}</td>
-                    </tr>
+                {% for asistencia in asistencia_list %}
+                <tr>
+                    <td>
+                        {{ asistencia.estudiante.nombre }} {{ asistencia.estudiante.apellido }}
+                        {% if asistencia.estudiante.tipo_usuario == 'profesor' %}
+                            <span class="profesor-title">(Profesor)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="estado_{{ asistencia.id }}" value="presente" {% if asistencia.estado == "presente" %}checked{% endif %}> Presente
+                            </label>
+                            <label>
+                                <input type="radio" name="estado_{{ asistencia.id }}" value="ausente" {% if asistencia.estado == "ausente" %}checked{% endif %}> Ausente
+                            </label>
+                            <label>
+                                <input type="radio" name="estado_{{ asistencia.id }}" value="atrasado" {% if asistencia.estado == "atrasado" %}checked{% endif %}> Atrasado
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="checkbox" name="biblia_{{ asistencia.id }}" {% if asistencia.cantidad_biblias > 0 %}checked{% endif %}>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <button type="submit">Guardar</button>
+        <button type="submit">Guardar cambios</button>
     </form>
     <a href="{% url 'inicio' %}">Volver al inicio</a>
 </body>

@@ -4,59 +4,160 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio</title>
-    <!-- FullCalendar CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-        }
-        #calendar {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .export-button {
-            margin: 20px 0;
             text-align: center;
         }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .button-container {
+            margin: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .clase-actual {
+            background-color: yellow;
+            font-weight: bold;
+        }
+        .profesor-title {
+            font-weight: bold;
+            color: blue;
+        }
+        .grafico-container {
+            width: 50%;
+            margin: 20px auto;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>Bienvenido, {{ usuario.nombre }} {{ usuario.apellido }}</h1>
     <p>Rol: {{ usuario.get_tipo_usuario_display }}</p>
-    
     <a href="admin_panel"> Generar Usuarios </a>
+
+    <div class="button-container">
+        <a href="{% url 'modificar_asistencia_fecha' fecha='hoy' %}">
+            <button>Generar Nueva Clase</button>
+        </a>
+    </div>
+
+    <h2>Historial de Clases</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Profesor</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if clase_actual %}
+            <tr class="clase-actual">
+                <td>{{ clase_actual.fecha }}</td>
+                <td>
+                    {{ clase_actual.profesor.nombre }} {{ clase_actual.profesor.apellido }}
+                    <span class="profesor-title">(Profesor)</span>
+                </td>
+                <td>
+                    <a href="{% url 'modificar_asistencia_fecha' clase_actual.fecha %}">
+                        <button>Ver/Modificar</button>
+                    </a>
+                </td>
+            </tr>
+            {% endif %}
+            {% for fecha in fechas_unicas %}
+            <tr>
+                <td>{{ fecha }}</td>
+                <td>
+                    {% with profesor=asistencias.first.profesor %}
+                        {{ profesor.nombre }} {{ profesor.apellido }}
+                        <span class="profesor-title">(Profesor)</span>
+                    {% endwith %}
+                </td>
+                <td>
+                    <a href="{% url 'modificar_asistencia_fecha' fecha %}">
+                        <button>Ver/Modificar</button>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No hay clases registradas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if datos_grafico %}
+<h2>Estadísticas Totales</h2>
+<div class="grafico-container">
+    <canvas id="graficoAsistencias"></canvas>
+</div>
+<script>
+    var ctx = document.getElementById('graficoAsistencias').getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Presentes', 'Atrasados', 'Ausentes'],  <!-- Etiquetas para los datos -->
+            datasets: [{
+                label: 'Porcentaje de Asistencias',
+                data: [
+                    {{ datos_grafico.presentes }},  <!-- Porcentaje de presentes -->
+                    {{ datos_grafico.atrasados }},  <!-- Porcentaje de atrasados -->
+                    {{ datos_grafico.ausentes }}   <!-- Porcentaje de ausentes -->
+                ],
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.2)',  <!-- Color para presentes -->
+                    'rgba(255, 206, 86, 0.2)',  <!-- Color para atrasados -->
+                    'rgba(255, 99, 132, 0.2)'   <!-- Color para ausentes -->
+                ],
+                borderColor: [
+                    'rgba(75, 192, 192, 1)',    <!-- Borde para presentes -->
+                    'rgba(255, 206, 86, 1)',    <!-- Borde para atrasados -->
+                    'rgba(255, 99, 132, 1)'     <!-- Borde para ausentes -->
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.raw + '%';  <!-- Mostrar el porcentaje en el tooltip -->
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
     
 
-    <h2>Calendario de Asistencias</h2>
-    <div id="calendar"></div>
-
-    <!-- FullCalendar JS -->
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/es.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('calendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',  // Vista inicial: mes
-                locale: 'es',  // Configura el calendario en español
-                events: JSON.parse('{{ eventos|safe }}'),  // Convertir JSON a objeto JavaScript
-                dateClick: function(info) {
-                    // Verificar si la fecha seleccionada es un domingo
-                    if (info.date.getDay() === 0) {  // Domingo es 0 en JavaScript
-                        // Redirigir a la vista de modificación de asistencias
-                        window.location.href = `/modificar_asistencia_fecha/${info.dateStr}/`;
-                    } else {
-                        alert('Solo se pueden seleccionar domingos.');
-                    }
-                },
-                validRange: {
-                    start: '{{ fecha_inicio|date:"Y-m-d" }}',  // Fecha de inicio (1 de marzo)
-                    end: '{{ fecha_fin|date:"Y-m-d" }}'  // Fecha de fin (31 de diciembre)
-                }
-            });
-            calendar.render();
-        });
-    </script>
 </body>
 </html>
