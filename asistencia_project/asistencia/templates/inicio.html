@@ -45,9 +45,24 @@
             color: blue;
         }
         .grafico-container {
-            width: 50%;
+            width: 80%;  <!-- Aumentar el ancho del contenedor del gráfico -->
             margin: 20px auto;
         }
+
+        .grafico-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px; /* Espacio entre los gráficos */
+            flex-wrap: wrap; /* Permite que los gráficos se ajusten si la pantalla es pequeña */
+        }
+
+        .grafico-container canvas {
+            width: 500px !important;  /* Tamaño fijo para mejor visualización */
+            height: 300px !important;
+            max-width: 100%;
+        }
+
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -57,111 +72,137 @@
     <p>Rol: {{ usuario.get_tipo_usuario_display }}</p>
     <a href="admin_panel"> Generar Usuarios </a>
 
-
     <div class="button-container">
         <a href="{% url 'modificar_asistencia_fecha' fecha='hoy' %}">
             <button>Generar Nueva Clase</button>
         </a>
     </div>
 
-    <h2>Historial de Clases</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Profesor</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if clase_actual %}
-            <tr class="clase-actual">
-                <td>{{ clase_actual.fecha }}</td>
-                <td>
-                    {{ clase_actual.profesor.nombre }} {{ clase_actual.profesor.apellido }}
-                    <span class="profesor-title">(Profesor)</span>
-                </td>
-                <td>
-                    <a href="{% url 'modificar_asistencia_fecha' clase_actual.fecha %}">
-                        <button>Ver/Modificar</button>
-                    </a>
-                </td>
-            </tr>
-            {% endif %}
-            {% for fecha in fechas_unicas %}
-            <tr>
-                <td>{{ fecha }}</td>
-                <td>
-                    {% with profesor=asistencias.first.profesor %}
-                        {{ profesor.nombre }} {{ profesor.apellido }}
-                        <span class="profesor-title">(Profesor)</span>
-                    {% endwith %}
-                </td>
-                <td>
-                    <a href="{% url 'modificar_asistencia_fecha' fecha %}">
-                        <button>Ver/Modificar</button>
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No hay clases registradas</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% if datos_grafico %}
-<h2>Estadísticas Totales</h2>
+   {% if nombres_cursos %}
+<h2>Estadísticas</h2>
 <div class="grafico-container">
-    <canvas id="graficoAsistencias"></canvas>
+    <div style="text-align: center;">
+        <h3>Asistencias por Curso</h3>
+        <canvas id="graficoAsistencias"></canvas>
+    </div>
+
+    <div style="text-align: center;">
+        <h3>Biblias Traídas por Día</h3>
+        <canvas id="graficoBiblias"></canvas>
+    </div>
 </div>
+
+
 <script>
-    var ctx = document.getElementById('graficoAsistencias').getContext('2d');
-    var myChart = new Chart(ctx, {
-        type: 'pie',
+    // Gráfico de Asistencias
+    var ctxAsistencias = document.getElementById('graficoAsistencias').getContext('2d');
+    var myChartAsistencias = new Chart(ctxAsistencias, {
+        type: 'bar',
         data: {
-            labels: ['Presentes', 'Atrasados', 'Ausentes'],  <!-- Etiquetas para los datos -->
+            labels: {{ nombres_cursos|safe }},
+            datasets: [
+                {
+                    label: 'Presentes',
+                    data: {{ presentes_cursos|safe }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Atrasados',
+                    data: {{ atrasados_cursos|safe }},
+                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Ausentes',
+                    data: {{ ausentes_cursos|safe }},
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Gráfico de Biblias por Día
+    var ctxBiblias = document.getElementById('graficoBiblias').getContext('2d');
+    var myChartBiblias = new Chart(ctxBiblias, {
+        type: 'line',
+        data: {
+            labels: {{ fechas_biblias|safe }},  // Fechas en el eje X
             datasets: [{
-                label: 'Porcentaje de Asistencias',
-                data: [
-                    {{ datos_grafico.presentes }},  <!-- Porcentaje de presentes -->
-                    {{ datos_grafico.atrasados }},  <!-- Porcentaje de atrasados -->
-                    {{ datos_grafico.ausentes }}   <!-- Porcentaje de ausentes -->
-                ],
-                backgroundColor: [
-                    'rgba(75, 192, 192, 0.2)',  <!-- Color para presentes -->
-                    'rgba(255, 206, 86, 0.2)',  <!-- Color para atrasados -->
-                    'rgba(255, 99, 132, 0.2)'   <!-- Color para ausentes -->
-                ],
-                borderColor: [
-                    'rgba(75, 192, 192, 1)',    <!-- Borde para presentes -->
-                    'rgba(255, 206, 86, 1)',    <!-- Borde para atrasados -->
-                    'rgba(255, 99, 132, 1)'     <!-- Borde para ausentes -->
-                ],
-                borderWidth: 1
+                label: 'Biblias Traídas',
+                data: {{ total_biblias|safe }},  // Cantidad de biblias por día
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                fill: true
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.raw + '%';  <!-- Mostrar el porcentaje en el tooltip -->
-                        }
-                    }
-                }
+            scales: {
+                y: { beginAtZero: true }
             }
         }
     });
 </script>
 {% endif %}
+
+<h2>Buscar Clases por Rango de Fechas</h2>
+<form method="GET" action="{% url 'inicio' %}">
+    <label for="fecha_inicio">Desde:</label>
+    <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}">
     
+    <label for="fecha_fin">Hasta:</label>
+    <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}">
+    
+    <button type="submit">Buscar</button>
+</form>
 
 
+
+<h2>Historial de Clases</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Profesor</th>
+            <th>Acción</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fecha, profesor in profesores_por_fecha %}
+        <tr>
+            <td>{{ fecha }}</td>
+            <td>
+                {{ profesor.nombre }} {{ profesor.apellido }}
+                <span class="profesor-title">(Profesor)</span>
+            </td>
+            <td>
+                <a href="{% url 'modificar_asistencia_fecha' fecha %}">
+                    <button>Ver/Modificar</button>
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No hay clases en este periodo</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
+   
 </body>
 </html>

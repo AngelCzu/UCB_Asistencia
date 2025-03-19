@@ -91,12 +91,57 @@ def inicio(request):
         clase_actual = None
         datos_grafico = None
 
+    # Obtener datos de todos los cursos
+    cursos = Curso.objects.all()
+    nombres_cursos = []
+    presentes_cursos = []
+    atrasados_cursos = []
+    ausentes_cursos = []
+
+    for curso in cursos:
+        asistencias_curso = Asistencia.objects.filter(estudiante__curso=curso)
+        presentes_curso = asistencias_curso.filter(estado='presente').count()
+        atrasados_curso = asistencias_curso.filter(estado='atrasado').count()
+        ausentes_curso = asistencias_curso.filter(estado='ausente').count()
+
+        nombres_cursos.append(curso.nombre)
+        presentes_cursos.append(presentes_curso)
+        atrasados_cursos.append(atrasados_curso)
+        ausentes_cursos.append(ausentes_curso)
+
+    # En la vista (views.py)
+    profesores_por_fecha = [
+    (fecha, Asistencia.objects.filter(fecha=fecha, estudiante__curso=usuario.curso).first().profesor)
+    for fecha in fechas_unicas
+    ]
+
+    # Obtener la cantidad de biblias traídas por día en el curso del usuario
+    biblias_por_dia = (
+        Asistencia.objects
+        .filter(estudiante__curso=usuario.curso)
+        .values('fecha')  # Agrupar por fecha
+        .annotate(total_biblias=models.Sum('cantidad_biblias'))  # Sumar biblias por fecha
+        .order_by('fecha')  # Ordenar por fecha ascendente
+    )
+
+    # Extraer las fechas y valores en listas para pasarlas al template
+    fechas_biblias = [str(entry['fecha']) for entry in biblias_por_dia]
+    total_biblias = [entry['total_biblias'] or 0 for entry in biblias_por_dia]
+
+
     context = {
+        'total_biblias': total_biblias,
+        'fechas_biblias': fechas_biblias,
+        'profesores_por_fecha':profesores_por_fecha,
         'usuario': usuario,
         'fechas_unicas': fechas_unicas,
         'clase_actual': clase_actual,
         'fecha_actual': fecha_actual,
-        'datos_grafico': datos_grafico
+        'datos_grafico': datos_grafico,
+        'nombres_cursos': nombres_cursos,  # Lista de nombres de cursos
+        'presentes_cursos': presentes_cursos,  # Lista de presentes por curso
+        'atrasados_cursos': atrasados_cursos,  # Lista de atrasados por curso
+        'ausentes_cursos': ausentes_cursos,  # Lista de ausentes por curso
     }
 
     return render(request, 'inicio.html', context)
@@ -107,8 +152,8 @@ def modificar_asistencia_fecha(request, fecha):
     if fecha == "hoy":
         fecha = now().date()  # Convertir "hoy" en la fecha actual
 
-    profesor = request.user  # Se asume que el usuario autenticado es un profesor
-    
+    profesor = request.user  # El profesor que genera la clase
+
     if profesor.tipo_usuario != 'profesor' or not profesor.curso:
         return redirect('inicio')  # Redirigir si el usuario no es profesor
 
@@ -120,7 +165,7 @@ def modificar_asistencia_fecha(request, fecha):
     for estudiante in estudiantes:
         Asistencia.objects.get_or_create(
             estudiante=estudiante,
-            profesor=profesor,
+            profesor=profesor,  # El profesor que genera la clase
             fecha=fecha,
             defaults={"estado": "ausente", "cantidad_biblias": 0}
         )
@@ -129,7 +174,7 @@ def modificar_asistencia_fecha(request, fecha):
     for prof in profesores:
         Asistencia.objects.get_or_create(
             estudiante=prof,
-            profesor=profesor,
+            profesor=prof,  # El profesor que genera su propia asistencia
             fecha=fecha,
             defaults={"estado": "presente", "cantidad_biblias": 0}
         )
@@ -147,8 +192,6 @@ def modificar_asistencia_fecha(request, fecha):
         return redirect("inicio")
 
     return render(request, "modificar_asistencia_fecha.html", {"asistencia_list": asistencia_list, "fecha": fecha})
-
-
 
 # Función para verificar si el usuario es admin
 def es_admin(user):
