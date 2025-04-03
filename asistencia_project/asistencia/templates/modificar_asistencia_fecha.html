@@ -6,29 +6,81 @@
     <title>Modificar Asistencias</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+            color: #333;
         }
+    
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    
+        form {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
+    
         th, td {
+            padding: 12px;
             border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+            text-align: center;
         }
+    
         th {
-            background-color: #f2f2f2;
+            background-color: #f0f0f0;
+            font-weight: bold;
         }
+    
         .radio-group {
             display: flex;
-            gap: 10px;
+            justify-content: center;
+            gap: 15px;
         }
+    
         .profesor-title {
             font-weight: bold;
-            color: blue; /* Puedes cambiar el color si lo deseas */
+            color: #0056b3;
+        }
+    
+        button[type="submit"] {
+            display: block;
+            margin: 30px auto 10px;
+            padding: 12px 25px;
+            font-size: 16px;
+            background-color: #28a745;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+    
+        button[type="submit"]:hover {
+            background-color: #218838;
+        }
+    
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+    
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>

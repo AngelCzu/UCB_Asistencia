@@ -39,24 +39,25 @@ class CustomUserCreationForm(UserCreationForm):
         fields = ['username', 'nombre', 'apellido', 'sexo', 'tipo_usuario', 'curso', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
+        profesor = kwargs.pop('profesor', None)
         super().__init__(*args, **kwargs)
-        # Ocultar y desactivar los campos de contraseña si el tipo de usuario no es profesor
-        if 'tipo_usuario' in self.data and self.data['tipo_usuario'] != 'profesor':
-            self.fields['password1'].widget = forms.HiddenInput()
-            self.fields['password2'].widget = forms.HiddenInput()
-            self.fields['password1'].required = False
-            self.fields['password2'].required = False
-        elif self.instance.pk and self.instance.tipo_usuario != 'profesor':
-            self.fields['password1'].widget = forms.HiddenInput()
-            self.fields['password2'].widget = forms.HiddenInput()
-            self.fields['password1'].required = False
-            self.fields['password2'].required = False
+
+        # Ocultar campos de contraseña y dejarlos como no obligatorios
+        self.fields['password1'].widget = forms.HiddenInput()
+        self.fields['password2'].widget = forms.HiddenInput()
+        self.fields['password1'].required = False
+        self.fields['password2'].required = False
+
+        # Mostrar el curso pero desactivado (solo lectura)
+        if profesor:
+            self.fields['curso'].initial = profesor.curso
+            self.fields['curso'].widget.attrs['readonly'] = True
+            self.fields['curso'].disabled = True  # Impide modificación en HTML
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        # Establecer la contraseña predeterminada si el usuario no es profesor
-        if self.cleaned_data['tipo_usuario'] != 'profesor':
-            user.set_password('123456')  # Contraseña predeterminada
+        user.set_password('123456')  # Contraseña por defecto
         if commit:
             user.save()
         return user
+
